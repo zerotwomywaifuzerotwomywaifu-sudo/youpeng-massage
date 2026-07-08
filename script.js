@@ -17,8 +17,8 @@ const servicesDef=[
 {id:"foot",name:"腳底按摩",staff:["boss","lady"],type:"free",opts:[45,60,75,90,105,120],rec:60,base:600,baseDur:45},
 {id:"body",name:"全身按摩",staff:["boss","lady"],type:"free",opts:[60,75,90,105,120],rec:60,base:800,baseDur:60},
 {id:"pain",name:"痠痛推拿",staff:["boss"],type:"free",opts:[60,75,90,105,120],rec:60,base:800,baseDur:60,parts:painItems},
-{id:"oil",name:"指油壓",staff:["boss","lady"],type:"free",opts:[60,75,90,105,120],rec:90,base:800,baseDur:60,recommended:[90,120]},
-{id:"aroma",name:"精油指油壓",staff:["boss","lady"],type:"free",opts:[60,75,90,105,120],rec:90,base:1000,baseDur:60,recommended:[90,120],special:"自備精油 60 分鐘 NT$800"}
+{id:"oil",name:"指油壓",staff:["lady"],type:"free",opts:[60,75,90,105,120],rec:90,base:800,baseDur:60,recommended:[90,120]},
+{id:"aroma",name:"精油指油壓",staff:["lady"],type:"free",opts:[60,75,90,105,120],rec:90,base:1000,baseDur:60,recommended:[90,120],special:"自備精油 60 分鐘 NT$800"}
 ];
 
 let selected=null;
@@ -40,8 +40,18 @@ function show(id){
   else{document.body.classList.remove("admin-mode")}
   scrollTo(0,0)
 }
+
 function showCustomer(){show("customer")}
-function goAdmin(e){e.preventDefault();if(localStorage.getItem("yp_admin_v23")==="yes"){show("admin");renderAdmin()}else show("login")}
+
+function goAdmin(e){
+  e.preventDefault();
+  if(localStorage.getItem("yp_admin_v23")==="yes"){
+    show("admin");
+    renderAdmin();
+  }else{
+    show("login");
+  }
+}
 
 function priceOf(s,dur){
   if(["handnail","footnail","callus","ingrown","gua"].includes(s.id))return s.base;
@@ -60,13 +70,27 @@ function seed(alertIt){
 }
 
 function init(){
-  dateInput.value=today();dateInput.min=today();
-  adminDate.value=today();manualDate.value=today();manualDate.min=today();
+  dateInput.value=today();
+  dateInput.min=today();
+  adminDate.value=today();
+  manualDate.value=today();
+  manualDate.min=today();
+
   if(!localStorage.getItem("yp_bk_v23"))seed(false);
   if(!localStorage.getItem("yp_buf_v23"))localStorage.setItem("yp_buf_v23","15");
-  buffer.value=localStorage.getItem("yp_buf_v23");
+
+  if(document.getElementById("breakTime")){
+    breakTime.value=localStorage.getItem("yp_buf_v23");
+  }
+
   renderServices();
-  if(localStorage.getItem("yp_admin_v23")==="yes"){show("admin");renderAdmin()}else show("customer")
+
+  if(localStorage.getItem("yp_admin_v23")==="yes"){
+    show("admin");
+    renderAdmin();
+  }else{
+    show("customer");
+  }
 }
 
 function renderServices(){
@@ -85,20 +109,24 @@ function renderServices(){
         h+=`<option value="${o}" ${o===s.rec?"selected":""}>${o} 分鐘${recText}</option>`;
       });
       h+=`</select>`;
+
       if(s.parts){
         h+=`<label>想針對處理（可複選）</label><div id="part-${s.id}" class="part-checks">`;
         s.parts.forEach(p=>h+=`<label class="part-check"><input type="checkbox" value="${p}" onchange="clearSlots()"> ${p}</label>`);
         h+=`</div><label>其他（選填）</label><textarea id="extra-${s.id}" placeholder="選填，例如：右肩抬不起來、彎腰會痛、左手容易麻..."></textarea><p class="muted">若上述選項無法完整描述您的狀況，可在此補充，例如哪裡痛、不舒服多久、什麼動作會痛。</p>`;
       }
     }
+
     if(s.type==="fixed"){
       h+=`<div class="notice">${s.label||"系統會自動預留服務時間。"}</div><input type="hidden" id="dur-${s.id}" value="${s.fixed}">`;
     }
+
     if(s.type==="level"){
       h+=`<label>請選擇情況</label><select id="dur-${s.id}" onchange="clearSlots()">`;
       s.levels.forEach(l=>h+=`<option value="${l[1]}" ${l[1]===s.rec?"selected":""}>${l[0]}（約 ${l[1]} 分）</option>`);
       h+=`</select><p class="muted">不確定可選一般（推薦）。</p>`;
     }
+
     if(s.special)h+=`<p class="muted">${s.special}</p>`;
     div.innerHTML=h+"</div>";
     services.appendChild(div);
@@ -109,6 +137,7 @@ function toggleSvc(id){
   document.getElementById("opt-"+id).classList.toggle("hidden",!document.querySelector(`.svc[value="${id}"]`).checked);
   clearSlots();
 }
+
 function clearSlots(){
   selected=null;
   slots.innerHTML="";
@@ -122,6 +151,7 @@ function selectedServices(){
     let dur=Number(document.getElementById("dur-"+s.id).value);
     let displayName=s.name;
     let part="";
+
     if(s.parts){
       let checked=[...document.querySelectorAll("#part-"+s.id+" input:checked")].map(x=>x.value);
       let extra=(document.getElementById("extra-"+s.id)?.value||"").trim();
@@ -129,28 +159,34 @@ function selectedServices(){
       if(part)displayName=s.name+"（"+part+"）";
       if(extra)displayName+="【其他："+extra+"】";
     }
+
     return {...s,name:displayName,rawName:s.name,part,dur,price:priceOf(s,dur)}
   });
 }
+
 function total(ss){return ss.reduce((a,s)=>a+s.dur,0)}
 function totalPrice(ss){return ss.reduce((a,s)=>a+s.price,0)}
 function can(st,ss){return ss.every(s=>s.staff.includes(st))}
 function overlap(a,b,c,d){return toMin(a)<toMin(d)&&toMin(c)<toMin(b)}
+
 function getHours(date){
   const all = JSON.parse(localStorage.getItem("yp_hours_v25")||"{}");
   return all[date] || {open:"10:00", close:"22:00", label:"正常營業"};
 }
+
 function saveHours(date, data){
   const all = JSON.parse(localStorage.getItem("yp_hours_v25")||"{}");
   all[date] = data;
   localStorage.setItem("yp_hours_v25", JSON.stringify(all));
 }
+
 function renderHoursStatus(){
   if(!document.getElementById("hoursStatus")) return;
   const d = adminDate.value || today();
   const h = getHours(d);
   hoursStatus.innerHTML = `<b>${d}</b><br>${h.label}<br>可預約時間：${h.open}～${h.close}`;
 }
+
 function setNormalHours(){
   const d = adminDate.value || today();
   saveHours(d, {open:"10:00", close:"22:00", label:"正常營業"});
@@ -158,6 +194,7 @@ function setNormalHours(){
   renderAdmin();
   alert("已恢復正常營業時間");
 }
+
 function setEarlyClose(){
   const d = adminDate.value || today();
   const close = earlyCloseTime.value || "18:00";
@@ -166,6 +203,7 @@ function setEarlyClose(){
   renderAdmin();
   alert("已設定提早打烊");
 }
+
 function setLateClose(){
   const d = adminDate.value || today();
   const close = lateCloseTime.value || "23:00";
@@ -174,6 +212,7 @@ function setLateClose(){
   renderAdmin();
   alert("已設定延後打烊");
 }
+
 function available(date,staff,start,dur){
   let buf=Number(localStorage.getItem("yp_buf_v23")||localStorage.getItem("yp_buf_v25")||15);
   let end=add(start,dur+buf);
@@ -186,23 +225,33 @@ function calcSlots(){
   selected=null;
   let date=dateInput.value,ss=selectedServices(),st=staffInput.value,dur=total(ss),p=totalPrice(ss);
   slots.innerHTML="";
-  if(!date||!ss.length){alert("請先選日期與服務");return}
+
+  if(!date||!ss.length){
+    alert("請先選日期與服務");
+    return;
+  }
+
   totalBox.innerHTML=`已選：${ss.map(s=>s.name+" "+s.dur+"分").join("、")}<br>服務總時間：約 ${dur} 分鐘<br>預估價格：NT$${p}`;
   totalBox.classList.remove("hidden");
   slotTitle.classList.remove("hidden");
 
   let cands=st==="any"?["boss","lady"].filter(x=>can(x,ss)):(can(st,ss)?[st]:[]);
+
   if(!cands.length){
-    slots.innerHTML=`<div class="notice" style="grid-column:1/-1">這組服務需要跨師傅接續。正式版會自動安排，此 Demo 先提示。</div>`;
+    slots.innerHTML=`<div class="notice" style="grid-column:1/-1">這組服務需要跨師傅接續。正式版會自動安排，此測試版先提示。</div>`;
     return;
   }
+
   let count=0,buf=Number(localStorage.getItem("yp_buf_v23")||15);
-  const biz=getHours(date); for(let m=toMin(biz.open);m<=toMin(biz.close)-dur-buf;m+=15){
+  const biz=getHours(date);
+
+  for(let m=toMin(biz.open);m<=toMin(biz.close)-dur-buf;m+=15){
     let t=toTime(m);
     cands.forEach(staff=>{
       let ok=available(date,staff,t,dur),d=document.createElement("div");
       d.className="slot"+(ok?"":" disabled");
       d.innerHTML=`${t}<br>${staffName[staff]}`;
+
       if(ok){
         count++;
         d.onclick=()=>{
@@ -212,18 +261,29 @@ function calcSlots(){
           previewBox.classList.add("hidden");
         };
       }
+
       slots.appendChild(d);
     });
   }
-  if(!count)slots.innerHTML=`<div class="notice" style="grid-column:1/-1">這天沒有符合條件的時段。</div>`;
+
+  if(!count){
+    slots.innerHTML=`<div class="notice" style="grid-column:1/-1">這天沒有符合條件的時段。</div>`;
+  }
 }
 
 function preview(){
   if(!selected){alert("請先選時間");return}
+
   let name=surname.value.trim();
   let tel=phone.value.trim();
-  if(!name||!tel){alert("請先填寫姓氏與電話");return}
+
+  if(!name||!tel){
+    alert("請先填寫姓氏與電話");
+    return;
+  }
+
   let end=add(selected.start,selected.dur);
+
   previewBox.innerHTML=`<b>預約確認</b><br>
   日期：${selected.date}<br>
   時間：${selected.start}～${end}<br>
@@ -235,14 +295,21 @@ function preview(){
   電話：${tel}<br>
   ${note.value.trim()?("備註："+note.value.trim()+"<br>"):""}
   <br><b>確認內容無誤後，請按下方「送出預約」。</b>`;
+
   previewBox.classList.remove("hidden");
 }
 
 function submitBooking(){
   if(!selected){alert("請先選時間");return}
+
   let name=surname.value.trim();
   let tel=phone.value.trim();
-  if(!name||!tel){alert("姓氏與電話都是必填");return}
+
+  if(!name||!tel){
+    alert("姓氏與電話都是必填");
+    return;
+  }
+
   let item={
     id:crypto.randomUUID(),
     type:"booking",
@@ -256,13 +323,18 @@ function submitBooking(){
     note:note.value.trim(),
     price:selected.price
   };
-  let b=bookings();b.push(item);save(b);
+
+  let b=bookings();
+  b.push(item);
+  save(b);
+
   successBox.innerHTML=`<b>預約成功！</b><br>
   ${item.date} ${item.start}～${item.end}<br>
   ${staffName[item.staff]}｜${item.customer}<br>
   ${item.service}<br>
   預估價格：NT$${item.price}<br><br>
   如需修改時間、服務項目或取消預約，請撥打店內室內電話聯繫。`;
+
   successBox.classList.remove("hidden");
   lookupPhone.value=item.phone;
   calcSlots();
@@ -270,27 +342,46 @@ function submitBooking(){
 
 function lookup(){
   let p=norm(lookupPhone.value);
-  if(!p){alert("請輸入電話");return}
-  let items=bookings().filter(b=>b.type==="booking"&&norm(b.phone)===p).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
-  lookupBox.innerHTML=items.length?items.map(b=>`<div class="appt"><div class="t">${b.date} ${b.start}～${b.end}</div>${staffName[b.staff]}｜${b.customer}<br>${b.service}<br>${b.price?("預估價格：NT$"+b.price+"<br>"):""}<span class="muted">修改或取消請撥打店內電話。</span></div>`).join(""):`<div class="notice">查無此電話的預約。</div>`;
+
+  if(!p){
+    alert("請輸入電話");
+    return;
+  }
+
+  let items=bookings()
+    .filter(b=>b.type==="booking"&&norm(b.phone)===p)
+    .sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+
+  lookupBox.innerHTML=items.length
+    ?items.map(b=>`<div class="appt"><div class="t">${b.date} ${b.start}～${b.end}</div>${staffName[b.staff]}｜${b.customer}<br>${b.service}<br>${b.price?("預估價格：NT$"+b.price+"<br>"):""}<span class="muted">修改或取消請撥打店內電話。</span></div>`).join("")
+    :`<div class="notice">查無此電話的預約。</div>`;
 }
 
 function login(){
-  if(adminUser.value==="admin"&&adminPass.value==="1234"){
+  if(adminPass.value==="1234"){
     if(remember.checked)localStorage.setItem("yp_admin_v23","yes");
-    show("admin");renderAdmin();
-  }else alert("帳號或密碼錯誤");
+    show("admin");
+    renderAdmin();
+  }else{
+    alert("密碼錯誤");
+  }
 }
-function logout(){localStorage.removeItem("yp_admin_v23");show("customer")}
 
+function logout(){
+  localStorage.removeItem("yp_admin_v23");
+  show("customer");
+}
 
 function isPastAppt(b){
   const now = new Date();
   const todayStr = now.toISOString().slice(0,10);
+
   if(b.date < todayStr) return true;
   if(b.date > todayStr) return false;
+
   return toMin(b.end) <= now.getHours()*60 + now.getMinutes();
 }
+
 function markDone(id){
   if(confirm("確定將這筆預約標記為已結束？")){
     let b=bookings();
@@ -300,6 +391,7 @@ function markDone(id){
     renderAdmin();
   }
 }
+
 function markUndone(id){
   let b=bookings();
   let x=b.find(i=>i.id===id);
@@ -307,12 +399,15 @@ function markUndone(id){
   save(b);
   renderAdmin();
 }
+
 function renderAdminSummary(items){
   if(!document.getElementById("adminSummary")) return;
+
   const appts = items.filter(b=>b.type!=="block");
   const done = appts.filter(b=>b.done || isPastAppt(b));
   const pending = appts.filter(b=>!(b.done || isPastAppt(b)));
   const revenue = appts.reduce((sum,b)=>sum+Number(b.price||0),0);
+
   adminSummary.innerHTML = `
     <div class="summary-box">總預約<b>${appts.length}</b></div>
     <div class="summary-box">未完成<b>${pending.length}</b></div>
@@ -320,32 +415,48 @@ function renderAdminSummary(items){
     <div class="summary-box">營業額<b>NT$${revenue}</b></div>
   `;
 }
+
 function nextAppointment(items){
   const now = new Date();
   const nowMin = now.getHours()*60 + now.getMinutes();
   const todayStr = now.toISOString().slice(0,10);
+
   const upcoming = items
     .filter(b=>b.type!=="block" && !b.done && (b.date>todayStr || (b.date===todayStr && toMin(b.end)>nowMin)))
     .sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+
   return upcoming[0]?.id || "";
 }
 
 function renderAdmin(){
   renderHoursStatus();
+
   let d=adminDate.value||today();
   let items=bookings().filter(b=>b.date===d).sort((a,b)=>a.start.localeCompare(b.start));
+
   renderAdminSummary(items);
+  renderTimeline(items);
   renderRevenue(d, items);
-  if(!items.length){adminList.innerHTML="<p class='muted'>這天目前沒有預約。</p>";return}
+
+  if(!items.length){
+    adminList.innerHTML="<p class='muted'>這天目前沒有預約。</p>";
+    return;
+  }
+
   adminList.innerHTML="";
+
   ["boss","lady"].forEach(st=>{
     adminList.innerHTML+=`<h3>${staffName[st]}</h3>`;
     let g=items.filter(x=>x.staff===st);
+
     if(!g.length)adminList.innerHTML+="<p class='muted'>無</p>";
+
     const nextId = nextAppointment(items);
+
     g.forEach(b=>{
       const finished = b.done || isPastAppt(b);
       const cls = b.type==="block" ? "block" : (finished ? "done" : (b.id===nextId ? "next" : "waiting"));
+
       adminList.innerHTML+=`<div class="appt ${cls}">
         <div class="t">${b.start}～${b.end} ${finished?"<span class='done-label'>已結束</span>":(b.id===nextId?"<span class='next-label'>下一位</span>":"")}</div>
         ${b.type==="block"?"預留：":""}${b.customer}｜${b.service}<br>
@@ -360,6 +471,62 @@ function renderAdmin(){
   });
 }
 
+function renderTimeline(items){
+  if(!document.getElementById("timelineBox")) return;
+
+  const breakMin = Number(localStorage.getItem("yp_buf_v23")||localStorage.getItem("yp_buf_v25")||localStorage.getItem("yp_break_v04")||15);
+
+  if(!items.length){
+    timelineBox.innerHTML = `<p class="muted">這天目前沒有行程。</p>`;
+    return;
+  }
+
+  let html = "";
+
+  ["boss","lady"].forEach(st=>{
+    const group = items.filter(x=>x.staff===st).sort((a,b)=>a.start.localeCompare(b.start));
+    html += `<div class="timeline-staff">${staffName[st]}</div>`;
+
+    if(!group.length){
+      html += `<div class="timeline-empty">無行程</div>`;
+      return;
+    }
+
+    group.forEach(b=>{
+      const finished = b.done || isPastAppt(b);
+      const isBlock = b.type==="block";
+
+      html += `
+        <div class="timeline-item">
+          <div class="timeline-time">${b.start}<br>｜<br>${b.end}</div>
+          <div class="timeline-card ${finished?"done":""} ${isBlock?"block":""}">
+            <div class="timeline-title">${finished?"已結束｜":""}${isBlock?"預留時間":b.customer}</div>
+            <div>${b.service}</div>
+            ${b.phone?`<div class="timeline-meta">電話：${b.phone}</div>`:""}
+            ${b.price?`<div class="timeline-meta">金額：NT$${b.price}</div>`:""}
+          </div>
+        </div>
+      `;
+
+      if(!isBlock && breakMin>0){
+        const bs = b.end;
+        const be = add(b.end, breakMin);
+
+        html += `
+          <div class="timeline-item">
+            <div class="timeline-time">${bs}<br>｜<br>${be}</div>
+            <div class="timeline-card break">
+              <div class="timeline-title">休息時間</div>
+              <div>${breakMin} 分鐘整理／休息</div>
+            </div>
+          </div>
+        `;
+      }
+    });
+  });
+
+  timelineBox.innerHTML = html;
+}
 
 function renderRevenue(date, items){
   const counted = items.filter(b=>b.type!=="block");
@@ -381,6 +548,7 @@ function renderRevenue(date, items){
       revenueList.innerHTML = `<p class="muted">這天目前沒有營業額紀錄。</p>`;
       return;
     }
+
     revenueList.innerHTML = counted.map(b=>`
       <div class="appt">
         <div class="t">${b.start}～${b.end}</div>
@@ -392,14 +560,62 @@ function renderRevenue(date, items){
 }
 
 function addManual(){
-  let date=manualDate.value,staff=manualStaff.value,start=manualStart.value,dur=Number(manualDur.value),service=manualService.value.trim()||(manualType.value==="block"?"預留時間":"現場服務"),manualAmount=Number(manualPrice.value||0);
-  if(!date||!start){alert("請填日期與開始時間");return}
-  if(!available(date,staff,start,dur)){alert("這段時間已有預約或超出營業時間");return}
-  let item={id:crypto.randomUUID(),type:manualType.value==="block"?"block":"booking",date,staff,start,end:add(start,dur),service,customer:manualType.value==="block"?"預留":"現場客",phone:"",note:"",price:manualType.value==="block"?0:manualAmount};
-  let b=bookings();b.push(item);save(b);renderAdmin();alert("已新增");
+  let date=manualDate.value;
+  let staff=manualStaff.value;
+  let start=manualStart.value;
+  let dur=Number(manualDur.value);
+  let service=manualService.value.trim()||(manualType.value==="block"?"預留時間":"現場服務");
+  let manualAmount=Number(manualPrice.value||0);
+
+  if(!date||!start){
+    alert("請填日期與開始時間");
+    return;
+  }
+
+  if(!available(date,staff,start,dur)){
+    alert("這段時間已有預約或超出營業時間");
+    return;
+  }
+
+  let item={
+    id:crypto.randomUUID(),
+    type:manualType.value==="block"?"block":"booking",
+    date,
+    staff,
+    start,
+    end:add(start,dur),
+    service,
+    customer:manualType.value==="block"?"預留":"現場客",
+    phone:"",
+    note:"",
+    price:manualType.value==="block"?0:manualAmount
+  };
+
+  let b=bookings();
+  b.push(item);
+  save(b);
+  renderAdmin();
+  alert("已新增");
 }
-function extend(id){let b=bookings(),x=b.find(i=>i.id===id);x.end=add(x.end,15);save(b);renderAdmin()}
-function del(id){if(confirm("確定取消？")){save(bookings().filter(x=>x.id!==id));renderAdmin()}}
-function saveBuffer(){localStorage.setItem("yp_buf_v23",buffer.value);renderAdmin()}
+
+function extend(id){
+  let b=bookings();
+  let x=b.find(i=>i.id===id);
+  x.end=add(x.end,15);
+  save(b);
+  renderAdmin();
+}
+
+function del(id){
+  if(confirm("確定取消？")){
+    save(bookings().filter(x=>x.id!==id));
+    renderAdmin();
+  }
+}
+
+function save休息時間(){
+  localStorage.setItem("yp_buf_v23",breakTime.value);
+  renderAdmin();
+}
 
 init();
