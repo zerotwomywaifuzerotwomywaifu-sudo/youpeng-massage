@@ -183,7 +183,13 @@ const servicesDef=[
 
 let selected=null;
 
-function today(){return new Date().toISOString().slice(0,10)}
+function today(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
 function toMin(t){let a=t.split(":").map(Number);return a[0]*60+a[1]}
 function toTime(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
 function add(t,m){return toTime(toMin(t)+m)}
@@ -566,7 +572,7 @@ function logout(){
 
 function isPastAppt(b){
   const now = new Date();
-  const todayStr = now.toISOString().slice(0,10);
+  const todayStr = today();
 
   if(b.date < todayStr) return true;
   if(b.date > todayStr) return false;
@@ -611,7 +617,7 @@ function renderAdminSummary(items){
 function nextAppointment(items){
   const now = new Date();
   const nowMin = now.getHours()*60 + now.getMinutes();
-  const todayStr = now.toISOString().slice(0,10);
+  const todayStr = today();
 
   const upcoming = items
     .filter(b=>b.type!=="block" && !b.done && (b.date>todayStr || (b.date===todayStr && toMin(b.end)>nowMin)))
