@@ -166,7 +166,8 @@
       <label>店休日期</label>
       <input type="date" id="closedDateInput">
       <button class="danger" onclick="setClosedDay()">設定這天店休一整天</button>
-      <p class="muted">店休後，客人端該日期會顯示無法預約；既有預約不會自動刪除。</p>
+      <button class="ghost" onclick="cancelClosedDay()">取消這天店休，恢復正常營業</button>
+      <p class="muted">店休後，客人端該日期會顯示無法預約；既有預約不會自動刪除。若臨時恢復營業，可按「取消這天店休」。</p>
 
       <label>提早打烊時間</label>
       <input type="time" id="earlyCloseTime" step="900" value="18:00">
